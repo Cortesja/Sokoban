@@ -1,114 +1,145 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
-public class gameManager : MonoBehaviour
+public class GameManager : MonoBehaviour
 {
     public GameObject playerPrefab;
-    // Start is called before the first frame update
+    public GameObject boxPrefab;
     int[,] map;
+    GameObject[,] field;
+    GameObject instance;
 
-    //void PrintArray()
-    //{
-    //    string debugText = "";
-    //    for (int i = 0; i < map.Length; i++)
-    //    {
-    //        debugText += map[i].ToString() + ", ";
-    //    }
-    //    Debug.Log(debugText);
-    //}
+    /// <summary>
+    /// 与えられた数字をマップ上で移動させる
+    /// </summary>
+    /// <param name = "number" > 移動させる数字 </ param >
+    /// < param name="moveFrom">元の位置</param>
+    /// <param name = "moveTo" > 移動先の位置 </ param >
+    /// < returns > 移動可能な時 true</returns>
+    bool MoveNumber(Vector2Int moveFrom, Vector2Int moveTo)
+    {
+        if (moveTo.y < 0 || moveTo.y >= field.GetLength(0)) { return false; }
+        if (moveTo.x < 0 || moveTo.x >= field.GetLength(1)) { return false; }
 
-    //int GetPlayerIndex()
-    //{
-    //    for (int i = 0; i < map.Length; i++)
-    //    {
-    //        if (map[i] == 1)
-    //        {
-    //            return i;
-    //        }
-    //    }
-    //    return -1;
-    //}
+        //return true;
 
-    //bool MoveNumber(int number, int moveFrom, int moveTo)
-    //{
-    //    //移動先が範囲外なら移動不可
-    //    if (moveTo < 0 || moveTo >= map.Length) {return false;}
-    //    //移動先に2(箱)が届いたら
-    //    if (map[moveTo] == 2)
-    //    {
-    //        //どの方向へ移動するかを算出
-    //        int offset = moveTo - moveFrom;
-    //        //プレイヤーの移動先から、さらに先へ2（箱）を移動させる
-    //        //箱の移動処理。MoveNumberメソッド内でMoveNumberメソッドを
-    //        //呼び、処理が再帰している。移動可不可をboolで記録
-    //        bool success = MoveNumber(2, moveTo, moveTo + offset);
-    //        //もし箱が移動失敗したら、プレイヤーの移動も失敗
-    //        if (!success) { return false; }
-    //    }
-    //    //プレイヤー・箱関わらずの移動処理
-    //    map[moveTo] = number;
-    //    map[moveFrom] = 0;
-    //    return true;
-    //}
+        if (field[moveTo.y, moveTo.x] != null && field[moveTo.y, moveTo.x].tag == "Box")
+        {
+            Vector2Int velocity = moveTo - moveFrom;
+            bool success = MoveNumber(moveTo, moveTo + velocity);
+            if (!success) { return false; }
+        }
+
+        field[moveFrom.y, moveFrom.x].transform.position =
+            new Vector3(moveTo.x, -1 * moveTo.y, 0);
+        field[moveTo.y, moveTo.x] = field[moveFrom.y, moveFrom.x];
+        field[moveFrom.y, moveFrom.x] = null;
+        return true;
+    }
+
+    Vector2Int GetPlayerIndex()
+    {
+        for (int y = 0; y < field.GetLength(0); y++)
+        {
+            for (int x = 0; x < field.GetLength(1); x++)
+            {
+                GameObject obj = field[y, x];
+                if (obj != null && obj.tag == "Player") //obj?.tag == "Player"
+                {
+                    return new Vector2Int(x, y);
+                } //プレイヤーを見つけた
+            }
+        }
+        return new Vector2Int(-1, -1);
+    }
+
+    void PrintArray()
+    {
+        string debugText = "";
+
+        for (int y = 0; y < map.GetLength(0); y++)
+        {
+            for (int x = 0; x < map.GetLength(1); x++)
+            {
+                debugText += map[y, x].ToString() + ",";
+            }
+
+            debugText += "\n";
+        }
+
+        Debug.Log(debugText);
+    }
 
     void Start()
     {
-        map = new int[,] {
-           {0, 1, 0, 2, 0, 2, 0, 0, 0},
-           {0, 1, 0, 2, 0, 2, 0, 0, 0},
-           {0, 1, 0, 2, 0, 2, 0, 0, 0}
+        map = new int[,]
+        {
+            { 0, 0, 0, 0, 0, 2, 0, 2, 0 },
+            { 0, 0, 0, 0, 0, 2, 0, 2, 0 },
+            { 0, 0, 0, 0, 0, 2, 0, 2, 0 },
+            { 0, 0, 0, 0, 1, 2, 0, 2, 0 },
+            { 0, 0, 0, 0, 0, 2, 0, 2, 0 },
+            { 0, 0, 0, 0, 0, 2, 0, 2, 0 }
         };
 
-        for(int y = 0; y < map.GetLength(0); y++)
+        PrintArray();
+
+        field = new GameObject[
+            map.GetLength(0),
+            map.GetLength(1)
+        ];
+
+        for (int y = 0; y < map.GetLength(0); y++)
         {
             for (int x = 0; x < map.GetLength(1); x++)
             {
                 if (map[y, x] == 1)
                 {
-                    GameObject instance = Instantiate(
-                        playerPrefab,
-                        new Vector3(x, map.GetLength(0) - y,0),
-                        Quaternion.identity
-                        );
+                    instance =
+                        Instantiate(playerPrefab, new Vector3(x, -1 * y, 0), Quaternion.identity);
+                    field[y, x] = instance;
+                    break;
                 }
+                if (map[y, x] == 2)
+                {
+                    instance =
+                        Instantiate(boxPrefab, new Vector3(x, -1 * y, 0), Quaternion.identity);
+                    field[y, x] = instance;
+                } 
             }
         }
-
-        //GameObject instance = Instantiate(playerPrefab, Vector3.zero, Quaternion.identity);
-
-        string debugText = "";
-
-        for(int y = 0; y < map.GetLength(0); y++)
-        {
-            for(int x = 0; x < map.GetLength(1); x++)
-            {
-                debugText += map[y,x].ToString() + ",";
-            }
-            debugText += "\n";
-        }
-        Debug.Log(debugText);
-
-        //PrintArray();
     }
 
-    //// Update is called once per frame
-    //void Update()
-    //{
-    //    int playerIndex = -1;
-    //    if (Input.GetKeyDown(KeyCode.D))
-    //    {
-    //        playerIndex = GetPlayerIndex();
-    //        MoveNumber(1, playerIndex, playerIndex + 1);
-    //        PrintArray();
-    //    }
+    void Update()
+    {
 
-    //    if (Input.GetKeyDown(KeyCode.A))
-    //    {
-    //        playerIndex = GetPlayerIndex();
-    //        MoveNumber(1, playerIndex, playerIndex - 1);
-    //        PrintArray();
-    //    }
-    //}
+        if (Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            Vector2Int playerPosition = GetPlayerIndex();
+            MoveNumber(playerPosition, playerPosition + Vector2Int.right);
+            PrintArray();
+        }
+
+        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            Vector2Int playerPosition = GetPlayerIndex();
+            MoveNumber(playerPosition, playerPosition + Vector2Int.left);
+            PrintArray();
+        }
+
+        if (Input.GetKeyDown(KeyCode.UpArrow))
+        {
+            Vector2Int playerPosition = GetPlayerIndex();
+            MoveNumber(playerPosition, playerPosition - Vector2Int.up);
+            PrintArray();
+        }
+
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            Vector2Int playerPosition = GetPlayerIndex();
+            MoveNumber(playerPosition, playerPosition - Vector2Int.down);
+            PrintArray();
+        }
+    }
 }
