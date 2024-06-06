@@ -12,6 +12,8 @@ public class GameManager : MonoBehaviour
     GameObject[,] field;
     GameObject instance;
 
+    public AudioSource audioSource;
+
     /// <summary>
     /// 与えられた数字をマップ上で移動させる
     /// </summary>
@@ -100,6 +102,8 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        audioSource.Play();
+
         clearText.SetActive(false);
         map = new int[,]
         {
